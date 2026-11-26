@@ -72,7 +72,7 @@ const hasociajobRubric: HasociajobRubric = {
   penalties: { nonCollaborativeEscalation: 25, leadershipAvoidance: 20 },
 };
 
-test("logistics perfect run is deterministic and earns full SLA bonus", () => {
+test("[LOGISTICS_CORE] deterministic picking FEFO, SST/PPE compliance and SLA bonus", () => {
   const events: ActionEvent[] = [
     { sequenceNum: 1, idempotencyKey: "k1", eventType: "SAFETY_PPE_EQUIPPED", payload: { item: "ppe_helmet" }, occurredAt: "2026-11-26T05:00:10Z" },
     { sequenceNum: 2, idempotencyKey: "k2", eventType: "SAFETY_PPE_EQUIPPED", payload: { item: "ppe_vest" }, occurredAt: "2026-11-26T05:00:15Z" },
@@ -91,7 +91,7 @@ test("logistics perfect run is deterministic and earns full SLA bonus", () => {
   assert.deepEqual(eval1, eval2);
 });
 
-test("administration penalizes unmasked PII data exposure", () => {
+test("[ADMIN_CORE] operational reporting reconciliation and PII exposure penalty", () => {
   const events: ActionEvent[] = [
     { sequenceNum: 1, idempotencyKey: "a1", eventType: "REPORT_RECORD_AUDITED", payload: { recordId: "INV-101", status: "RECONCILED" }, occurredAt: "2026-11-26T05:01:00Z" },
     { sequenceNum: 2, idempotencyKey: "a2", eventType: "PII_SHARED_UNMASKED", payload: { field: "dni" }, occurredAt: "2026-11-26T05:02:00Z" },
@@ -102,7 +102,7 @@ test("administration penalizes unmasked PII data exposure", () => {
   assert.ok(result.ruleViolations.some((v) => v.code === "DATA_EXPOSURE_RISK"));
 });
 
-test("sales rewards consultative discovery and ethical objection handling", () => {
+test("[SALES_CORE] consultative discovery and ethical objection handling", () => {
   const events: ActionEvent[] = [
     { sequenceNum: 1, idempotencyKey: "s1", eventType: "DISCOVERY_STEP_COMPLETED", payload: { step: "ask_budget_need" }, occurredAt: "2026-11-26T05:00:30Z" },
     { sequenceNum: 2, idempotencyKey: "s2", eventType: "DISCOVERY_STEP_COMPLETED", payload: { step: "verify_use_case" }, occurredAt: "2026-11-26T05:01:00Z" },
@@ -115,7 +115,7 @@ test("sales rewards consultative discovery and ethical objection handling", () =
   assert.equal(result.passed, true);
 });
 
-test("HaSociaJob flags non-collaborative escalation while preserving clean passing paths", () => {
+test("[HASOCIAJOB_SOFT] collaborative leadership scoring and non-collaborative escalation check", () => {
   const cleanEvents: ActionEvent[] = [
     { sequenceNum: 1, idempotencyKey: "h1", eventType: "HASOCIAJOB_DECISION", payload: { situationId: "SIT-TEAM-CONFLICT", action: "ACTIVE_LISTENING_MEDIATION" }, occurredAt: "2026-11-26T05:01:00Z" },
     { sequenceNum: 2, idempotencyKey: "h2", eventType: "HASOCIAJOB_DECISION", payload: { situationId: "SIT-SCOPE-CHANGE", action: "ADAPTIVE_REPRIORITIZATION" }, occurredAt: "2026-11-26T05:02:00Z" },
@@ -132,7 +132,7 @@ test("HaSociaJob flags non-collaborative escalation while preserving clean passi
   assert.ok(failed.ruleViolations.some((v) => v.code === "NON_COLLABORATIVE_ESCALATION"));
 });
 
-test("anti-tamper and session state machine enforce invariants", () => {
+test("[CORE_INVARIANTS] anti-tamper duration guard and session state machine", () => {
   assert.throws(
     () =>
       evaluateSimulation(
