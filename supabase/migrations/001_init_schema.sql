@@ -1,13 +1,17 @@
 -- =============================================================================
--- 001_init_schema.sql — Portal Job (Supabase / PostgreSQL Blueprint)
--- Multi-tenant B2B2C schema: Candidates, Partner Orgs, 3D Scenarios,
--- Checkpointed Simulation Sessions, Append-only Telemetry & Verified Progress.
+-- 001_init_schema.sql — PortalJob & HaSociaJob (Supabase / PostgreSQL Blueprint)
+-- Multi-tenant B2B2C schema covering:
+--   • Regionalized youth talent profiles (Lima -> Arequipa / Piura -> National)
+--   • Partner orgs & institutional ecosystem co-endorsement
+--   • 4 simulation verticals (administration, logistics, sales, hasociajob)
+--   • Checkpointed simulation state & append-only telemetry
+--   • Deterministic evaluation ledger, verifiable certificates & B2B talent opt-ins
 -- =============================================================================
 
 create extension if not exists "pgcrypto";
 
 -- -----------------------------------------------------------------------------
--- 1. Identity & B2B Multi-Tenancy
+-- 1. Identity, Regionalization & B2B Multi-Tenancy
 -- -----------------------------------------------------------------------------
 
 create table if not exists public.profiles (
@@ -16,6 +20,7 @@ create table if not exists public.profiles (
     check (role in ('candidate', 'partner_recruiter', 'platform_admin')),
   full_name text not null,
   email text not null,
+  region text not null default 'Lima',
   total_xp integer not null default 0 check (total_xp >= 0),
   current_level integer not null default 1 check (current_level >= 1),
   is_open_to_work boolean not null default true,
@@ -28,6 +33,9 @@ create table if not exists public.partner_orgs (
   name text not null,
   slug text not null unique,
   industry text not null,
+  org_type text not null default 'corporate'
+    check (org_type in ('corporate', 'public_entity', 'ecosystem_partner')),
+  region text not null default 'Lima',
   verified boolean not null default false,
   created_at timestamptz not null default now()
 );
@@ -43,14 +51,15 @@ create table if not exists public.partner_memberships (
 );
 
 -- -----------------------------------------------------------------------------
--- 2. Training Tracks & Gamified 3D Scenarios
+-- 2. Thematic Tracks & Simulators (Admin, Logistics, Sales, HaSociaJob)
 -- -----------------------------------------------------------------------------
 
 create table if not exists public.career_tracks (
   id uuid primary key default gen_random_uuid(),
   code text not null unique,
   title text not null,
-  vertical text not null check (vertical in ('logistics', 'hr', 'operations')),
+  vertical text not null
+    check (vertical in ('administration', 'logistics', 'sales', 'hasociajob')),
   description text not null default '',
   is_active boolean not null default true,
   created_at timestamptz not null default now()
@@ -106,7 +115,7 @@ create table if not exists public.session_events (
 );
 
 -- -----------------------------------------------------------------------------
--- 4. Deterministic Evaluation Ledger, Skill Progress & B2B Opt-In Matching
+-- 4. Deterministic Evaluation Ledger, Verifiable Certificates & Talent Pool
 -- -----------------------------------------------------------------------------
 
 create table if not exists public.evaluation_results (
@@ -122,6 +131,18 @@ create table if not exists public.evaluation_results (
   rule_violations jsonb not null default '[]'::jsonb,
   ai_feedback jsonb,
   evaluated_at timestamptz not null default now()
+);
+
+create table if not exists public.certificates (
+  id uuid primary key default gen_random_uuid(),
+  evaluation_id uuid not null unique references public.evaluation_results(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  scenario_id uuid not null references public.scenarios(id) on delete restrict,
+  co_endorser_org_id uuid references public.partner_orgs(id) on delete set null,
+  verification_code text not null unique,
+  credential_title text not null,
+  status text not null default 'active' check (status in ('active', 'revoked')),
+  issued_at timestamptz not null default now()
 );
 
 create table if not exists public.candidate_skill_progress (
@@ -151,7 +172,6 @@ create table if not exists public.talent_opt_ins (
 -- 5. Performance & Integrity Indexes
 -- -----------------------------------------------------------------------------
 
--- Guarantees at most one active/paused session per user & scenario
 create unique index if not exists ux_active_session_per_user_scenario
   on public.simulation_sessions (user_id, scenario_id)
   where status in ('in_progress', 'paused');
@@ -168,6 +188,13 @@ create index if not exists ix_eval_user_score
 create index if not exists ix_scenarios_published_track
   on public.scenarios (track_id, difficulty)
   where is_published = true;
+
+create index if not exists ix_profiles_region_open
+  on public.profiles (region, is_open_to_work)
+  where role = 'candidate';
+
+create index if not exists ix_certificates_user_issued
+  on public.certificates (user_id, issued_at desc);
 
 create index if not exists ix_optins_partner_status
   on public.talent_opt_ins (partner_org_id, consent_status, scenario_id);

@@ -1,7 +1,7 @@
 -- =============================================================================
--- 002_rls_policies.sql — Zero-Trust Row Level Security (Portal Job)
--- Deny-by-default boundary isolating B2C Candidates, B2B Partner Orgs,
--- and protecting deterministic evaluation/XP integrity.
+-- 002_rls_policies.sql — Zero-Trust Row Level Security (PortalJob)
+-- Deny-by-default boundary protecting youth data privacy (Ley N. 29733),
+-- partner organizations, verifiable certificates, and evaluation integrity.
 -- =============================================================================
 
 alter table public.profiles                 enable row level security;
@@ -12,11 +12,12 @@ alter table public.scenarios                enable row level security;
 alter table public.simulation_sessions      enable row level security;
 alter table public.session_events           enable row level security;
 alter table public.evaluation_results       enable row level security;
+alter table public.certificates             enable row level security;
 alter table public.candidate_skill_progress enable row level security;
 alter table public.talent_opt_ins           enable row level security;
 
 -- -----------------------------------------------------------------------------
--- Helper: Non-recursive partner membership check
+-- Helpers: Non-recursive multi-tenant & consent checks
 -- -----------------------------------------------------------------------------
 
 create or replace function public.is_partner_member(
@@ -38,7 +39,6 @@ as $$
   );
 $$;
 
--- Helper: Verifies if current authenticated partner recruiter has valid opt-in
 create or replace function public.partner_has_candidate_opt_in(target_candidate_id uuid)
 returns boolean
 language sql
@@ -154,7 +154,6 @@ create policy "sessions_insert_own" on public.simulation_sessions
     and status = 'in_progress'
   );
 
--- Note: 003_triggers_and_functions.sql blocks client-side transition to 'evaluated'
 drop policy if exists "sessions_update_own_active" on public.simulation_sessions;
 create policy "sessions_update_own_active" on public.simulation_sessions
   for update to authenticated
@@ -193,7 +192,8 @@ create policy "session_events_insert_own_active" on public.session_events
   );
 
 -- -----------------------------------------------------------------------------
--- 5. Evaluation Ledger & Skill Progress (Read-only for clients; written via BFF)
+-- 5. Evaluation Ledger, Verifiable Certificates & Skill Progress
+--    (Read-only for clients; written strictly by server-side evaluation RPC)
 -- -----------------------------------------------------------------------------
 
 drop policy if exists "evaluation_results_select_own_or_consented_partner" on public.evaluation_results;
@@ -204,8 +204,13 @@ create policy "evaluation_results_select_own_or_consented_partner" on public.eva
     or public.partner_has_candidate_opt_in(user_id)
   );
 
--- No INSERT/UPDATE/DELETE policies for `authenticated` on evaluation_results:
--- only `service_role` (server-side deterministic engine) can write evaluations.
+drop policy if exists "certificates_select_own_or_consented_partner" on public.certificates;
+create policy "certificates_select_own_or_consented_partner" on public.certificates
+  for select to authenticated
+  using (
+    auth.uid() = user_id
+    or public.partner_has_candidate_opt_in(user_id)
+  );
 
 drop policy if exists "skill_progress_select_own_or_consented_partner" on public.candidate_skill_progress;
 create policy "skill_progress_select_own_or_consented_partner" on public.candidate_skill_progress
@@ -216,7 +221,7 @@ create policy "skill_progress_select_own_or_consented_partner" on public.candida
   );
 
 -- -----------------------------------------------------------------------------
--- 6. Talent Opt-Ins (Explicit B2B Consent)
+-- 6. Talent Opt-Ins (Explicit B2B Consent for Cartera de Talento)
 -- -----------------------------------------------------------------------------
 
 drop policy if exists "talent_opt_ins_select_own_or_partner" on public.talent_opt_ins;

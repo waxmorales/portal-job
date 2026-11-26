@@ -4,15 +4,13 @@
 * **Autor:** Max Clever Quintana Morales (Arquitecto Backend)
 
 ## Contexto
-Portal Job evalúa a jóvenes sin experiencia laboral mediante misiones 3D gamificadas (Logística, RRHH, Operaciones) cuyos puntajes alimentan un dossier de competencias consultado por empresas aliadas. Necesitamos decidir si la evaluación de desempeño la ejecuta un modelo LLM o un motor de cálculo programático.
+PortalJob evalúa competencias prácticas en **Administración, Logística y Ventas**, además de habilidades blandas en **HaSociaJob** (comunicación efectiva, liderazgo, resolución de problemas y adaptabilidad). Los resultados respaldan **certificaciones laborales** y una **cartera de talento** consultada por empresas aliadas.
 
 ## Decisión
-Toda evaluación numérica (KPIs, cumplimiento de SLA, penalizaciones, aprobación y otorgamiento de XP) se ejecuta en un **motor determinista escrito en TypeScript puro** (`packages/simulation-engine`) sin acceso a red, sin React y sin llamadas a LLMs. La Inteligencia Artificial se utiliza únicamente *después* de persistir el resultado, para redactar explicaciones pedagógicas y recomendar micro-capacitaciones.
-
-## Alternativas Consideradas
-1. **Evaluación directa mediante LLM:** Descartada por no ser reproducible, tener latencia alta, costo variable por intento y riesgo de *prompt injection* o sesgos al asignar puntajes.
-2. **Microservicio externo en Python para scoring:** Descartada para el MVP por introducir complejidad operativa de despliegue entre dos runtimes cuando la lógica de reglas operativas y SLA se ejecuta en `< 5 ms` nativamente dentro del runtime TypeScript del BFF Next.js 16.
+Separar estrictamente la evaluación cuantitativa de la retroalimentación generativa:
+1. Toda puntuación (`final_score`), cumplimiento de SLA, detección de infracciones (`rule_violations`), otorgamiento de XP y elegibilidad de certificación se calcula en un **motor determinista en TypeScript puro** (`packages/simulation-engine`).
+2. La Inteligencia Artificial consume *a posteriori* los resultados inmutables de `evaluation_results` para generar retroalimentación personalizada (fortalezas, áreas de mejora y acciones recomendadas).
 
 ## Consecuencias
-* **Positivas:** Reproducibilidad del 100% (`engineVersion + inputHash`), costo cero por evaluación, auditoría clara de cada penalización para empresas B2B y pruebas unitarias ultrarrápidas.
-* **Negativas / Mitigación:** Requiere modelar explícitamente las rúbricas de cada nuevo escenario en `rubric_config` y TypeScript; se mitiga diseñando un contrato genérico extensible por vertical.
+* **Positivas:** Reproducibilidad auditable (`engineVersion + inputHash`), inmunidad contra *prompt injection*, latencia `< 5 ms` y control estricto del presupuesto de infraestructura.
+* **Negativas / Mitigación:** Exige modelar rúbricas tipadas por cada vertical (`logistics`, `administration`, `sales`, `hasociajob`); se mitiga con contratos extensibles en `types.ts`.

@@ -1,5 +1,5 @@
 -- =============================================================================
--- 003_triggers_and_functions.sql — Integrity Guards & Transactional Evaluation
+-- 003_triggers_and_functions.sql — Integrity Guards, Evaluation RPC & Verify RPC
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -13,11 +13,12 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, email, full_name, role)
+  insert into public.profiles (id, email, full_name, region, role)
   values (
     new.id,
     coalesce(new.email, ''),
     coalesce(new.raw_user_meta_data->>'full_name', split_part(coalesce(new.email, 'user'), '@', 1)),
+    coalesce(nullif(new.raw_user_meta_data->>'region', ''), 'Lima'),
     'candidate'
   )
   on conflict (id) do nothing;
@@ -103,7 +104,7 @@ create trigger trg_guard_session_lifecycle
   for each row execute function public.guard_session_lifecycle();
 
 -- -----------------------------------------------------------------------------
--- 4. Atomic Deterministic Evaluation Commit RPC (Server-Only)
+-- 4. Atomic Deterministic Evaluation & Certificate Issuance RPC (Server-Only)
 -- -----------------------------------------------------------------------------
 
 create or replace function public.commit_deterministic_evaluation(
@@ -117,20 +118,25 @@ create or replace function public.commit_deterministic_evaluation(
   p_kpi_breakdown jsonb,
   p_rule_violations jsonb
 )
-returns uuid
+returns table (
+  evaluation_id uuid,
+  verification_code text
+)
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
   v_user_id uuid;
+  v_scenario_id uuid;
+  v_scenario_title text;
+  v_partner_org_id uuid;
   v_skill_code text;
   v_eval_id uuid;
-  v_new_total_xp integer;
+  v_verif_code text := null;
 begin
-  -- Lock session row to avoid double-submission race conditions
-  select s.user_id, sc.skill_code
-  into v_user_id, v_skill_code
+  select s.user_id, sc.id, sc.title, sc.partner_org_id, sc.skill_code
+  into v_user_id, v_scenario_id, v_scenario_title, v_partner_org_id, v_skill_code
   from public.simulation_sessions s
   join public.scenarios sc on sc.id = s.scenario_id
   where s.id = p_session_id
@@ -173,11 +179,33 @@ begin
   )
   returning id into v_eval_id;
 
+  if p_passed then
+    v_verif_code := 'PJ-' || to_char(now(), 'YYYY') || '-' ||
+      upper(substring(replace(gen_random_uuid()::text, '-', ''), 1, 8));
+
+    insert into public.certificates (
+      evaluation_id,
+      user_id,
+      scenario_id,
+      co_endorser_org_id,
+      verification_code,
+      credential_title,
+      status
+    ) values (
+      v_eval_id,
+      v_user_id,
+      v_scenario_id,
+      v_partner_org_id,
+      v_verif_code,
+      'Certificado Práctico: ' || v_scenario_title,
+      'active'
+    );
+  end if;
+
   update public.profiles
   set total_xp = total_xp + p_xp_awarded,
       current_level = greatest(1, floor((total_xp + p_xp_awarded) / 500.0)::integer + 1)
-  where id = v_user_id
-  returning total_xp into v_new_total_xp;
+  where id = v_user_id;
 
   insert into public.candidate_skill_progress (
     user_id,
@@ -198,7 +226,7 @@ begin
       best_score = greatest(candidate_skill_progress.best_score, excluded.best_score),
       updated_at = now();
 
-  return v_eval_id;
+  return query select v_eval_id, v_verif_code;
 end;
 $$;
 
@@ -208,3 +236,44 @@ revoke all on function public.commit_deterministic_evaluation(
 grant execute on function public.commit_deterministic_evaluation(
   uuid, integer, text, text, numeric, boolean, integer, jsonb, jsonb
 ) to service_role;
+
+-- -----------------------------------------------------------------------------
+-- 5. Safe Point-Verification RPC for Employers & Co-Endorsers
+-- -----------------------------------------------------------------------------
+
+create or replace function public.verify_certificate(p_verification_code text)
+returns table (
+  valid boolean,
+  verification_code text,
+  credential_title text,
+  candidate_name text,
+  vertical text,
+  final_score numeric,
+  issued_at timestamptz,
+  co_endorser_name text
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    (c.status = 'active') as valid,
+    c.verification_code,
+    c.credential_title,
+    p.full_name as candidate_name,
+    ct.vertical,
+    er.final_score,
+    c.issued_at,
+    po.name as co_endorser_name
+  from public.certificates c
+  join public.profiles p on p.id = c.user_id
+  join public.evaluation_results er on er.id = c.evaluation_id
+  join public.scenarios sc on sc.id = c.scenario_id
+  join public.career_tracks ct on ct.id = sc.track_id
+  left join public.partner_orgs po on po.id = c.co_endorser_org_id
+  where c.verification_code = p_verification_code
+  limit 1;
+$$;
+
+grant execute on function public.verify_certificate(text) to anon, authenticated;

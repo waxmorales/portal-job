@@ -1,50 +1,51 @@
 -- =============================================================================
--- 004_seed_catalog.sql — Tracks & 3D Simulator Scenarios (Logistics & HR)
+-- 004_seed_catalog.sql — Tracks & Scenarios for PortalJob & HaSociaJob
+-- Covers Administration, Logistics, Sales & HaSociaJob Soft Skills.
 -- =============================================================================
 
 insert into public.career_tracks (code, title, vertical, description, is_active)
 values
   (
     'LOGISTICS_CORE',
-    'Operaciones Logísticas y Almacén 3D',
+    'Logística, Almacén y Seguridad Laboral',
     'logistics',
-    'Entrenamiento práctico en picking FIFO/FEFO, seguridad EPP, control de inventario y despacho bajo SLA.',
+    'Simulación práctica de picking FEFO, trazabilidad de inventario y protocolos de seguridad EPP bajo SLA.',
     true
   ),
   (
-    'HR_TALENT_CORE',
-    'Gestión de Talento y Selección Objetiva',
-    'hr',
-    'Simulación de filtrado curricular sin sesgos, priorización de incidencias laborales y cumplimiento normativo.',
+    'ADMIN_CORE',
+    'Administración, Reportes y Habilidades Digitales',
+    'administration',
+    'Gestión de reportes operativos, conciliación documental, herramientas digitales y resguardo de datos.',
+    true
+  ),
+  (
+    'SALES_CORE',
+    'Ventas, Atención al Cliente y Ética Comercial',
+    'sales',
+    'Diagnóstico de necesidades, manejo de objeciones comerciales y cierre efectivo sin promesas engañosas.',
+    true
+  ),
+  (
+    'HASOCIAJOB_SOFT',
+    'HaSociaJob — Habilidades Blandas y Liderazgo',
+    'hasociajob',
+    'Simulador situacional para fortalecer comunicación efectiva, liderazgo, trabajo en equipo, resolución de problemas y adaptabilidad.',
     true
   )
 on conflict (code) do nothing;
 
+-- 1. Logística
 insert into public.scenarios (
-  track_id,
-  partner_org_id,
-  slug,
-  title,
-  description,
-  difficulty,
-  target_sla_seconds,
-  base_xp_reward,
-  passing_score,
-  skill_code,
-  rubric_config,
-  is_published
+  track_id, partner_org_id, slug, title, description, difficulty,
+  target_sla_seconds, base_xp_reward, passing_score, skill_code, rubric_config, is_published
 )
 select
-  ct.id,
-  null,
-  'picking-fifo-almacen-central',
-  'Picking FEFO y Despacho Seguro Bajo Presión de SLA',
-  'Ejecuta una orden de despacho en almacén 3D verificando EPP, seleccionando lotes por vencimiento FEFO y cumpliendo el tiempo objetivo.',
-  'beginner',
-  480,
-  250,
-  70.00,
-  'WAREHOUSE_FEFO_OPERATIONS',
+  ct.id, null,
+  'picking-fefo-seguridad-almacen',
+  'Picking FEFO y Protocolos de Seguridad Laboral',
+  'Prepara un despacho en almacén 3D verificando EPP obligatorio, rotación FEFO por lote y cumplimiento de SLA.',
+  'beginner', 480, 250, 70.00, 'WAREHOUSE_FEFO_SAFETY',
   '{
     "vertical": "logistics",
     "weights": { "accuracy": 0.45, "sla": 0.30, "protocol": 0.25 },
@@ -53,57 +54,88 @@ select
       { "sku": "SKU-104", "expectedBatch": "LOT-2026-01", "requiredQty": 2 },
       { "sku": "SKU-209", "expectedBatch": "LOT-2026-02", "requiredQty": 1 }
     ],
-    "penalties": {
-      "missingPpe": 25,
-      "wrongBatchRotation": 15
-    },
+    "penalties": { "missingPpe": 25, "wrongBatchRotation": 15 },
     "minPlausibleSeconds": 20
   }'::jsonb,
   true
-from public.career_tracks ct
-where ct.code = 'LOGISTICS_CORE'
+from public.career_tracks ct where ct.code = 'LOGISTICS_CORE'
 on conflict (slug) do nothing;
 
+-- 2. Administración
 insert into public.scenarios (
-  track_id,
-  partner_org_id,
-  slug,
-  title,
-  description,
-  difficulty,
-  target_sla_seconds,
-  base_xp_reward,
-  passing_score,
-  skill_code,
-  rubric_config,
-  is_published
+  track_id, partner_org_id, slug, title, description, difficulty,
+  target_sla_seconds, base_xp_reward, passing_score, skill_code, rubric_config, is_published
 )
 select
-  ct.id,
-  null,
-  'hr-screening-compliance-operativo',
-  'Pre-selección Ética y Resolución de Incidencias RRHH',
-  'Evalúa perfiles operativos en entorno simulado siguiendo criterios técnicos objetivos, descartando sesgos y escalando alertas críticas.',
-  'intermediate',
-  600,
-  300,
-  75.00,
-  'ETHICAL_TALENT_SCREENING',
+  ct.id, null,
+  'admin-gestion-reportes-digitales',
+  'Gestión de Reportes Operativos y Habilidades Digitales',
+  'Audita registros administrativos, concilia discrepancias en reportes y aplica buenas prácticas de seguridad documental.',
+  'beginner', 540, 260, 75.00, 'ADMIN_REPORTING_DIGITAL',
   '{
-    "vertical": "hr",
-    "weights": { "accuracy": 0.45, "sla": 0.25, "protocol": 0.30 },
-    "expectedDecisions": [
-      { "caseId": "CASE-01", "expectedAction": "SHORTLIST" },
-      { "caseId": "CASE-02", "expectedAction": "ESCALATE_COMPLIANCE" },
-      { "caseId": "CASE-03", "expectedAction": "REJECT_TECHNICAL_GAP" }
+    "vertical": "administration",
+    "weights": { "accuracy": 0.50, "sla": 0.25, "protocol": 0.25 },
+    "expectedChecks": [
+      { "recordId": "INV-101", "expectedStatus": "RECONCILED" },
+      { "recordId": "INV-102", "expectedStatus": "FLAG_DISCREPANCY" },
+      { "recordId": "INV-103", "expectedStatus": "RECONCILED" }
     ],
-    "penalties": {
-      "biasCriterionUsed": 30,
-      "missedComplianceEscalation": 20
-    },
-    "minPlausibleSeconds": 30
+    "requiredDigitalActions": ["export_pivot_summary", "mask_pii_fields"],
+    "penalties": { "unverifiedReportSubmitted": 20, "dataExposureRisk": 30 },
+    "minPlausibleSeconds": 25
   }'::jsonb,
   true
-from public.career_tracks ct
-where ct.code = 'HR_TALENT_CORE'
+from public.career_tracks ct where ct.code = 'ADMIN_CORE'
+on conflict (slug) do nothing;
+
+-- 3. Ventas
+insert into public.scenarios (
+  track_id, partner_org_id, slug, title, description, difficulty,
+  target_sla_seconds, base_xp_reward, passing_score, skill_code, rubric_config, is_published
+)
+select
+  ct.id, null,
+  'ventas-diagnostico-objeciones-cierre',
+  'Diagnóstico Comercial y Manejo de Objeciones',
+  'Atiende a un cliente simulado, identifica su necesidad real, responde objeciones con transparencia y logra el cierre.',
+  'intermediate', 420, 280, 75.00, 'CONSULTATIVE_SALES_ETHICS',
+  '{
+    "vertical": "sales",
+    "weights": { "accuracy": 0.45, "sla": 0.25, "protocol": 0.30 },
+    "requiredDiscoverySteps": ["ask_budget_need", "verify_use_case"],
+    "expectedObjectionResponses": [
+      { "objectionId": "OBJ-PRICE", "expectedStrategy": "VALUE_ROI_BREAKDOWN" },
+      { "objectionId": "OBJ-SUPPORT", "expectedStrategy": "SLA_WARRANTY_PROOF" }
+    ],
+    "penalties": { "misleadingSalesClaim": 35, "skippedDiscovery": 15 },
+    "minPlausibleSeconds": 20
+  }'::jsonb,
+  true
+from public.career_tracks ct where ct.code = 'SALES_CORE'
+on conflict (slug) do nothing;
+
+-- 4. HaSociaJob (Habilidades Blandas)
+insert into public.scenarios (
+  track_id, partner_org_id, slug, title, description, difficulty,
+  target_sla_seconds, base_xp_reward, passing_score, skill_code, rubric_config, is_published
+)
+select
+  ct.id, null,
+  'hasociajob-liderazgo-comunicacion-equipo',
+  'HaSociaJob: Liderazgo Colaborativo y Resolución de Conflictos',
+  'Resuelve tensiones en un equipo multidisciplinario aplicando comunicación efectiva, adaptabilidad y liderazgo constructivo.',
+  'beginner', 600, 300, 75.00, 'HASOCIAJOB_LEADERSHIP_COMM',
+  '{
+    "vertical": "hasociajob",
+    "weights": { "accuracy": 0.45, "sla": 0.20, "protocol": 0.35 },
+    "expectedSituations": [
+      { "situationId": "SIT-TEAM-CONFLICT", "expectedAction": "ACTIVE_LISTENING_MEDIATION" },
+      { "situationId": "SIT-SCOPE-CHANGE", "expectedAction": "ADAPTIVE_REPRIORITIZATION" },
+      { "situationId": "SIT-BOTTLENECK", "expectedAction": "CONSTRUCTIVE_DELEGATION" }
+    ],
+    "penalties": { "nonCollaborativeEscalation": 25, "leadershipAvoidance": 20 },
+    "minPlausibleSeconds": 25
+  }'::jsonb,
+  true
+from public.career_tracks ct where ct.code = 'HASOCIAJOB_SOFT'
 on conflict (slug) do nothing;

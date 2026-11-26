@@ -1,21 +1,26 @@
 /**
- * Portal Job — Reference Pure-TypeScript Deterministic Scoring & State Transition Contract
+ * PortalJob & HaSociaJob — Pure-TypeScript Deterministic Scoring Engine
  *
- * Demonstrates strict separation between deterministic numeric computation and
- * downstream AI pedagogical interpretation (ADR-001).
+ * Covers all 4 real thematic modules:
+ *  - Logistics (FEFO Picking + PPE Safety + SLA)
+ *  - Administration (Operational Reporting + Digital Skills + Data Protection)
+ *  - Sales (Needs Discovery + Objection Handling + Commercial Ethics)
+ *  - HaSociaJob (Communication, Leadership, Problem Solving, Adaptability)
  */
 
 import type {
   ActionEvent,
+  AdministrationRubric,
   DeterministicEvaluation,
-  HrRubric,
+  HasociajobRubric,
   LogisticsRubric,
   RuleViolation,
+  SalesRubric,
   ScenarioRubric,
   SessionStatus,
 } from "./types.ts";
 
-export const SIMULATION_ENGINE_VERSION = "1.0.0";
+export const SIMULATION_ENGINE_VERSION = "1.1.0";
 
 const ALLOWED_TRANSITIONS: Record<SessionStatus, readonly SessionStatus[]> = {
   in_progress: ["in_progress", "paused", "submitted", "abandoned", "expired"],
@@ -39,10 +44,7 @@ function roundTwo(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-/**
- * Deterministic 64-bit FNV-1a canonical digest (zero external dependencies)
- * used in blueprint mode to bind an evaluation record to its exact ordered inputs.
- */
+/** Deterministic 64-bit FNV-1a canonical digest binding inputs to outputs. */
 export function computeCanonicalInputHash(rubric: ScenarioRubric, events: readonly ActionEvent[]): string {
   const canonical = JSON.stringify({
     engineVersion: SIMULATION_ENGINE_VERSION,
@@ -98,7 +100,6 @@ function evaluateLogistics(
   elapsedSeconds: number
 ): Omit<DeterministicEvaluation, "engineVersion" | "inputHash"> {
   const violations: RuleViolation[] = [];
-
   const equippedSafety = new Set<string>();
   const pickedCounts = new Map<string, number>();
 
@@ -138,7 +139,7 @@ function evaluateLogistics(
         code: `MISSING_${reqCheck.toUpperCase()}`,
         severity: "critical",
         penaltyPoints: rubric.penalties.missingPpe,
-        message: `Protocolo EPP incompleto: falta '${reqCheck}'.`,
+        message: `Protocolo de seguridad laboral incompleto: falta '${reqCheck}'.`,
         occurredAt: events[0]?.occurredAt ?? new Date(0).toISOString(),
       });
     }
@@ -146,8 +147,7 @@ function evaluateLogistics(
 
   const totalRequiredQty = rubric.expectedItems.reduce((sum, item) => sum + item.requiredQty, 0);
   const totalCorrectQty = rubric.expectedItems.reduce((sum, item) => {
-    const picked = pickedCounts.get(item.sku) ?? 0;
-    return sum + Math.min(picked, item.requiredQty);
+    return sum + Math.min(pickedCounts.get(item.sku) ?? 0, item.requiredQty);
   }, 0);
 
   const accuracyPct = totalRequiredQty > 0 ? roundTwo((totalCorrectQty / totalRequiredQty) * 100) : 100;
@@ -160,58 +160,197 @@ function evaluateLogistics(
   return finalizeScore(rubric, accuracyPct, slaCompliancePct, protocolAdherencePct, elapsedSeconds, violations);
 }
 
-function evaluateHr(
-  rubric: HrRubric,
+function evaluateAdministration(
+  rubric: AdministrationRubric,
+  events: readonly ActionEvent[],
+  elapsedSeconds: number
+): Omit<DeterministicEvaluation, "engineVersion" | "inputHash"> {
+  const violations: RuleViolation[] = [];
+  const checkedRecords = new Map<string, string>();
+  const digitalActions = new Set<string>();
+  let exposedDataCount = 0;
+
+  for (const evt of events) {
+    if (evt.eventType === "REPORT_RECORD_AUDITED") {
+      const recordId = typeof evt.payload.recordId === "string" ? evt.payload.recordId : "";
+      const status = typeof evt.payload.status === "string" ? evt.payload.status : "";
+      if (recordId) checkedRecords.set(recordId, status);
+    }
+
+    if (evt.eventType === "DIGITAL_ACTION_EXECUTED" && typeof evt.payload.action === "string") {
+      digitalActions.add(evt.payload.action);
+    }
+
+    if (evt.eventType === "REPORT_SUBMITTED" && evt.payload.unverified === true) {
+      violations.push({
+        code: "UNVERIFIED_REPORT_SUBMITTED",
+        severity: "warning",
+        penaltyPoints: rubric.penalties.unverifiedReportSubmitted,
+        message: "Se envió un reporte operativo sin completar la conciliación documental.",
+        occurredAt: evt.occurredAt,
+      });
+    }
+
+    if (evt.eventType === "PII_SHARED_UNMASKED") {
+      exposedDataCount += 1;
+      violations.push({
+        code: "DATA_EXPOSURE_RISK",
+        severity: "critical",
+        penaltyPoints: rubric.penalties.dataExposureRisk,
+        message: "Incumplimiento de protección de datos: se exportó información personal sin anonimizar.",
+        occurredAt: evt.occurredAt,
+      });
+    }
+  }
+
+  let correctRecords = 0;
+  for (const exp of rubric.expectedChecks) {
+    if (checkedRecords.get(exp.recordId) === exp.expectedStatus) {
+      correctRecords += 1;
+    }
+  }
+
+  let matchedDigital = 0;
+  for (const action of rubric.requiredDigitalActions) {
+    if (digitalActions.has(action)) matchedDigital += 1;
+  }
+
+  const accuracyPct =
+    rubric.expectedChecks.length > 0 ? roundTwo((correctRecords / rubric.expectedChecks.length) * 100) : 100;
+  const slaCompliancePct = computeSlaCompliance(elapsedSeconds, rubric.targetSlaSeconds);
+  const digitalScore =
+    rubric.requiredDigitalActions.length > 0
+      ? (matchedDigital / rubric.requiredDigitalActions.length) * 100
+      : 100;
+  const protocolAdherencePct = roundTwo(clamp(digitalScore - exposedDataCount * 50, 0, 100));
+
+  return finalizeScore(rubric, accuracyPct, slaCompliancePct, protocolAdherencePct, elapsedSeconds, violations);
+}
+
+function evaluateSales(
+  rubric: SalesRubric,
+  events: readonly ActionEvent[],
+  elapsedSeconds: number
+): Omit<DeterministicEvaluation, "engineVersion" | "inputHash"> {
+  const violations: RuleViolation[] = [];
+  const discoveryDone = new Set<string>();
+  const objectionResponses = new Map<string, string>();
+  let misleadingClaims = 0;
+
+  for (const evt of events) {
+    if (evt.eventType === "DISCOVERY_STEP_COMPLETED" && typeof evt.payload.step === "string") {
+      discoveryDone.add(evt.payload.step);
+    }
+
+    if (evt.eventType === "OBJECTION_HANDLED") {
+      const objectionId = typeof evt.payload.objectionId === "string" ? evt.payload.objectionId : "";
+      const strategy = typeof evt.payload.strategy === "string" ? evt.payload.strategy : "";
+      if (objectionId) objectionResponses.set(objectionId, strategy);
+    }
+
+    if (evt.eventType === "COMMERCIAL_CLAIM_MADE" && evt.payload.misleading === true) {
+      misleadingClaims += 1;
+      violations.push({
+        code: "MISLEADING_SALES_CLAIM",
+        severity: "critical",
+        penaltyPoints: rubric.penalties.misleadingSalesClaim,
+        message: "Se realizó una promesa comercial falsa o contraria a las condiciones reales.",
+        occurredAt: evt.occurredAt,
+      });
+    }
+  }
+
+  let discoveryMatched = 0;
+  for (const reqStep of rubric.requiredDiscoverySteps) {
+    if (discoveryDone.has(reqStep)) {
+      discoveryMatched += 1;
+    } else {
+      violations.push({
+        code: "SKIPPED_NEEDS_DISCOVERY",
+        severity: "warning",
+        penaltyPoints: rubric.penalties.skippedDiscovery,
+        message: `Omitido paso de diagnóstico comercial: '${reqStep}'.`,
+        occurredAt: events[0]?.occurredAt ?? new Date(0).toISOString(),
+      });
+    }
+  }
+
+  let objectionsMatched = 0;
+  for (const exp of rubric.expectedObjectionResponses) {
+    if (objectionResponses.get(exp.objectionId) === exp.expectedStrategy) {
+      objectionsMatched += 1;
+    }
+  }
+
+  const accuracyPct =
+    rubric.expectedObjectionResponses.length > 0
+      ? roundTwo((objectionsMatched / rubric.expectedObjectionResponses.length) * 100)
+      : 100;
+  const slaCompliancePct = computeSlaCompliance(elapsedSeconds, rubric.targetSlaSeconds);
+  const discoveryRatio =
+    rubric.requiredDiscoverySteps.length > 0
+      ? (discoveryMatched / rubric.requiredDiscoverySteps.length) * 100
+      : 100;
+  const protocolAdherencePct = roundTwo(clamp(discoveryRatio - misleadingClaims * 50, 0, 100));
+
+  return finalizeScore(rubric, accuracyPct, slaCompliancePct, protocolAdherencePct, elapsedSeconds, violations);
+}
+
+function evaluateHasociajob(
+  rubric: HasociajobRubric,
   events: readonly ActionEvent[],
   elapsedSeconds: number
 ): Omit<DeterministicEvaluation, "engineVersion" | "inputHash"> {
   const violations: RuleViolation[] = [];
   const decisions = new Map<string, string>();
-  let biasFlags = 0;
+  let collaborativePenaltyCount = 0;
 
   for (const evt of events) {
-    if (evt.eventType === "HR_CASE_DECISION") {
-      const caseId = typeof evt.payload.caseId === "string" ? evt.payload.caseId : "";
+    if (evt.eventType === "HASOCIAJOB_DECISION") {
+      const situationId = typeof evt.payload.situationId === "string" ? evt.payload.situationId : "";
       const action = typeof evt.payload.action === "string" ? evt.payload.action : "";
-      const usedProtectedAttribute = evt.payload.usedProtectedAttribute === true;
+      const nonCollaborative = evt.payload.nonCollaborative === true;
+      const avoidedLeadership = evt.payload.avoidedLeadership === true;
 
-      if (usedProtectedAttribute) {
-        biasFlags += 1;
+      if (nonCollaborative) {
+        collaborativePenaltyCount += 1;
         violations.push({
-          code: "BIAS_CRITERION_DETECTED",
+          code: "NON_COLLABORATIVE_ESCALATION",
           severity: "critical",
-          penaltyPoints: rubric.penalties.biasCriterionUsed,
-          message: `Uso de criterio no objetivo/sesgado detectado en el caso ${caseId}.`,
+          penaltyPoints: rubric.penalties.nonCollaborativeEscalation,
+          message: `Respuesta confrontacional o sin comunicación efectiva en ${situationId}.`,
           occurredAt: evt.occurredAt,
         });
       }
 
-      if (caseId) {
-        decisions.set(caseId, action);
+      if (avoidedLeadership) {
+        collaborativePenaltyCount += 1;
+        violations.push({
+          code: "LEADERSHIP_AVOIDANCE",
+          severity: "warning",
+          penaltyPoints: rubric.penalties.leadershipAvoidance,
+          message: `Evitación de responsabilidad y resolución colaborativa en ${situationId}.`,
+          occurredAt: evt.occurredAt,
+        });
       }
+
+      if (situationId) decisions.set(situationId, action);
     }
   }
 
   let correctCount = 0;
-  for (const exp of rubric.expectedDecisions) {
-    const actual = decisions.get(exp.caseId);
-    if (actual === exp.expectedAction) {
+  for (const exp of rubric.expectedSituations) {
+    if (decisions.get(exp.situationId) === exp.expectedAction) {
       correctCount += 1;
-    } else if (exp.expectedAction === "ESCALATE_COMPLIANCE") {
-      violations.push({
-        code: "MISSED_COMPLIANCE_ESCALATION",
-        severity: "critical",
-        penaltyPoints: rubric.penalties.missedComplianceEscalation,
-        message: `Caso ${exp.caseId} requería escalamiento obligatorio de cumplimiento.`,
-        occurredAt: events[events.length - 1]?.occurredAt ?? new Date(0).toISOString(),
-      });
     }
   }
 
-  const totalCases = rubric.expectedDecisions.length;
-  const accuracyPct = totalCases > 0 ? roundTwo((correctCount / totalCases) * 100) : 100;
+  const accuracyPct =
+    rubric.expectedSituations.length > 0
+      ? roundTwo((correctCount / rubric.expectedSituations.length) * 100)
+      : 100;
   const slaCompliancePct = computeSlaCompliance(elapsedSeconds, rubric.targetSlaSeconds);
-  const protocolAdherencePct = biasFlags === 0 ? 100 : clamp(100 - biasFlags * 50, 0, 100);
+  const protocolAdherencePct = roundTwo(clamp(100 - collaborativePenaltyCount * 35, 0, 100));
 
   return finalizeScore(rubric, accuracyPct, slaCompliancePct, protocolAdherencePct, elapsedSeconds, violations);
 }
@@ -266,10 +405,21 @@ export function evaluateSimulation(
   const ordered = [...events].sort((a, b) => a.sequenceNum - b.sequenceNum);
   validateChronologyAndAntiTamper(ordered, elapsedSeconds, rubric.minPlausibleSeconds);
 
-  const core =
-    rubric.vertical === "logistics"
-      ? evaluateLogistics(rubric, ordered, elapsedSeconds)
-      : evaluateHr(rubric, ordered, elapsedSeconds);
+  let core: Omit<DeterministicEvaluation, "engineVersion" | "inputHash">;
+  switch (rubric.vertical) {
+    case "logistics":
+      core = evaluateLogistics(rubric, ordered, elapsedSeconds);
+      break;
+    case "administration":
+      core = evaluateAdministration(rubric, ordered, elapsedSeconds);
+      break;
+    case "sales":
+      core = evaluateSales(rubric, ordered, elapsedSeconds);
+      break;
+    case "hasociajob":
+      core = evaluateHasociajob(rubric, ordered, elapsedSeconds);
+      break;
+  }
 
   return {
     engineVersion: SIMULATION_ENGINE_VERSION,

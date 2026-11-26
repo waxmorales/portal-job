@@ -1,11 +1,11 @@
 /**
- * Portal Job — Pure Domain Contracts for Deterministic Simulation Engine
+ * PortalJob & HaSociaJob — Pure Domain Contracts for Deterministic Simulation Engine
  *
  * Architectural Rule (ADR-001):
- * This module MUST remain framework-agnostic (zero React, Next.js, Supabase, or LLM imports).
+ * Zero React, Next.js, Supabase, or LLM imports.
  */
 
-export type VerticalCode = "logistics" | "hr" | "operations";
+export type VerticalCode = "administration" | "logistics" | "sales" | "hasociajob";
 
 export type SessionStatus =
   | "in_progress"
@@ -58,19 +58,22 @@ export interface ScoringWeights {
   protocol: number;
 }
 
+interface BaseRubric {
+  targetSlaSeconds: number;
+  baseXpReward: number;
+  passingScore: number;
+  minPlausibleSeconds: number;
+  weights: ScoringWeights;
+}
+
 export interface LogisticsExpectedItem {
   sku: string;
   expectedBatch: string;
   requiredQty: number;
 }
 
-export interface LogisticsRubric {
+export interface LogisticsRubric extends BaseRubric {
   vertical: "logistics";
-  targetSlaSeconds: number;
-  baseXpReward: number;
-  passingScore: number;
-  minPlausibleSeconds: number;
-  weights: ScoringWeights;
   requiredSafetyChecks: string[];
   expectedItems: LogisticsExpectedItem[];
   penalties: {
@@ -79,26 +82,55 @@ export interface LogisticsRubric {
   };
 }
 
-export interface HrExpectedDecision {
-  caseId: string;
-  expectedAction: "SHORTLIST" | "ESCALATE_COMPLIANCE" | "REJECT_TECHNICAL_GAP";
+export interface AdminExpectedCheck {
+  recordId: string;
+  expectedStatus: "RECONCILED" | "FLAG_DISCREPANCY";
 }
 
-export interface HrRubric {
-  vertical: "hr";
-  targetSlaSeconds: number;
-  baseXpReward: number;
-  passingScore: number;
-  minPlausibleSeconds: number;
-  weights: ScoringWeights;
-  expectedDecisions: HrExpectedDecision[];
+export interface AdministrationRubric extends BaseRubric {
+  vertical: "administration";
+  expectedChecks: AdminExpectedCheck[];
+  requiredDigitalActions: string[];
   penalties: {
-    biasCriterionUsed: number;
-    missedComplianceEscalation: number;
+    unverifiedReportSubmitted: number;
+    dataExposureRisk: number;
   };
 }
 
-export type ScenarioRubric = LogisticsRubric | HrRubric;
+export interface SalesExpectedObjection {
+  objectionId: string;
+  expectedStrategy: string;
+}
+
+export interface SalesRubric extends BaseRubric {
+  vertical: "sales";
+  requiredDiscoverySteps: string[];
+  expectedObjectionResponses: SalesExpectedObjection[];
+  penalties: {
+    misleadingSalesClaim: number;
+    skippedDiscovery: number;
+  };
+}
+
+export interface HasociajobExpectedSituation {
+  situationId: string;
+  expectedAction: string;
+}
+
+export interface HasociajobRubric extends BaseRubric {
+  vertical: "hasociajob";
+  expectedSituations: HasociajobExpectedSituation[];
+  penalties: {
+    nonCollaborativeEscalation: number;
+    leadershipAvoidance: number;
+  };
+}
+
+export type ScenarioRubric =
+  | LogisticsRubric
+  | AdministrationRubric
+  | SalesRubric
+  | HasociajobRubric;
 
 export interface SessionStateSnapshot {
   schemaVersion: number;
