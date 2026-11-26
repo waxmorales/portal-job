@@ -26,7 +26,7 @@ stateDiagram-v2
 ```mermaid
 sequenceDiagram
     autonumber
-    actor U as "Joven (Lima / Arequipa / Piura)"
+    actor U as "Joven (Lima / Piura / Lambayeque / Arequipa)"
     participant SIM as "Simulador (Admin/Log/Ventas/HaSociaJob)"
     participant BFF as "Next.js 16 BFF (/api/v1)"
     participant ENG as "Motor TS Determinista"

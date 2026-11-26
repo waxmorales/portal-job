@@ -141,10 +141,13 @@ create policy "scenarios_update_partner_admin" on public.scenarios
 -- 4. Simulation Sessions & Append-Only Events
 -- -----------------------------------------------------------------------------
 
-drop policy if exists "sessions_select_own" on public.simulation_sessions;
-create policy "sessions_select_own" on public.simulation_sessions
+drop policy if exists "sessions_select_own_or_consented_partner" on public.simulation_sessions;
+create policy "sessions_select_own_or_consented_partner" on public.simulation_sessions
   for select to authenticated
-  using (auth.uid() = user_id);
+  using (
+    auth.uid() = user_id
+    or public.partner_has_candidate_opt_in(user_id)
+  );
 
 drop policy if exists "sessions_insert_own" on public.simulation_sessions;
 create policy "sessions_insert_own" on public.simulation_sessions

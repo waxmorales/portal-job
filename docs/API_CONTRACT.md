@@ -116,12 +116,12 @@ Permite a empleadores y entidades verificar la autenticidad de una certificació
 }
 ```
 
-### `GET /api/v1/partner/talent?vertical=logistics&region=Lima&minScore=80`
-Endpoint B2B de **Intermediación Laboral (Cartera de Talento Capacitado)** exclusivo para miembros activos en `partner_memberships`.
+### `GET /api/v1/partner/talent?vertical=logistics&region=Piura&minScore=80`
+Endpoint B2B de **Intermediación Laboral (Cartera de Talento Capacitado)** exclusivo para miembros activos en `partner_memberships`, permitiendo además supervisar el progreso en tiempo real de candidatos con consentimiento vigente.
 
 **Filtros soportados:**
 * `vertical`: `administration` | `logistics` | `sales` | `hasociajob`
-* `region`: `Lima` | `Arequipa` | `Piura` (soporta la expansión regional de 18 meses)
+* `region`: `Lima` | `Piura` | `Lambayeque` | `Arequipa` (soporta despliegue gradual y cobertura nacional en 18 meses)
 * `minScore`: umbral mínimo verificado en `evaluation_results`
 
 **Garantía RLS:** Solo retorna candidatos con `talent_opt_ins.consent_status = 'granted'` para la organización solicitante y `profiles.is_open_to_work = true`.

@@ -157,7 +157,7 @@ erDiagram
 ## 2. Dominios del Modelo de Datos
 
 ### A. Identidad, Regionalización y Aliados (`profiles`, `partner_orgs`, `partner_memberships`)
-* **`profiles`:** Extiende `auth.users` incorporando `role` (`candidate`, `partner_recruiter`, `platform_admin`), `region` (por defecto `'Lima'`, soportando expansión a `'Arequipa'`, `'Piura'`, etc.), `total_xp`, `current_level` e `is_open_to_work`.
+* **`profiles`:** Extiende `auth.users` incorporando `role` (`candidate`, `partner_recruiter`, `platform_admin`), `region` (por defecto `'Lima'`, soportando expansión a `'Piura'`, `'Lambayeque'`, `'Arequipa'` y cobertura nacional), `total_xp`, `current_level` e `is_open_to_work`.
 * **`partner_orgs`:** Modela empresas aliadas (`corporate`), instituciones públicas (`public_entity`) o aliados de ecosistema (`ecosystem_partner`) con verificación institucional (`verified`) y `region`.
 
 ### B. Catálogo de Simuladores (`career_tracks`, `scenarios`)
@@ -186,7 +186,7 @@ erDiagram
 | `ux_active_session_per_user_scenario` | `simulation_sessions` | **Índice único parcial** (`WHERE status IN ('in_progress', 'paused')`) que impide sesiones simultáneas duplicadas. |
 | `ix_sessions_user_recent` | `simulation_sessions` | Historial del candidato ordenado por fecha (`user_id, started_at DESC`). |
 | `ux_session_event_idempotency` | `session_events` | Idempotencia exacta en reintentos de red (`session_id, idempotency_key`). |
-| `ix_profiles_region_open` | `profiles` | Segmentación geográfica para expansión Lima → Arequipa → Piura (`region, is_open_to_work`). |
+| `ix_profiles_region_open` | `profiles` | Segmentación geográfica para expansión Lima → Piura / Lambayeque / Arequipa (`region, is_open_to_work`). |
 | `ux_certificates_verification_code` | `certificates` | Búsqueda instantánea $O(\log n)$ al validar un certificado laboral por código. |
 | `ix_optins_partner_status` | `talent_opt_ins` | Consultas de cartera de talento en `/api/v1/partner/talent`. |
 
@@ -201,7 +201,7 @@ Todas las tablas habilitan `ROW LEVEL SECURITY` en modo *deny-by-default*.
 | `profiles` | Propio usuario (`auth.uid() = id`) o Partner si existe `talent_opt_ins = 'granted'` | Trigger `on_auth_user_created` | Propio usuario (trigger bloquea cambios a `role`, `total_xp`, `current_level`) | Denegado |
 | `partner_orgs` | Organizaciones verificadas o miembros de la org | Solo `service_role` | Admins de la org | Denegado |
 | `career_tracks` / `scenarios` | Activos/publicados o miembros del partner dueño | Admins del partner o `service_role` | Admins del partner o `service_role` | Denegado |
-| `simulation_sessions` | Propio usuario (`auth.uid() = user_id`) | Propio usuario (`status = 'in_progress'`) | Propio usuario solo en estados activos (trigger bloquea `'evaluated'` desde cliente) | Denegado |
+| `simulation_sessions` | Propio usuario (`auth.uid() = user_id`) o Partner con opt-in vigente (supervisión en tiempo real) | Propio usuario (`status = 'in_progress'`) | Propio usuario solo en estados activos (trigger bloquea `'evaluated'` desde cliente) | Denegado |
 | `session_events` | Propio usuario (vía `session_id`) | Propio usuario mientras la sesión esté activa | Denegado (inmutable) | Denegado |
 | `evaluation_results` | Propio usuario o Partner con opt-in vigente | **Solo `service_role`** | **Solo `service_role`** (solo `ai_feedback`) | Denegado |
 | `certificates` | Propio usuario o Partner con opt-in vigente (y verificación puntual vía RPC `verify_certificate`) | **Solo `service_role` / RPC** | **Solo `service_role`** | Denegado |

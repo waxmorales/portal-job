@@ -7,16 +7,16 @@ insert into public.career_tracks (code, title, vertical, description, is_active)
 values
   (
     'LOGISTICS_CORE',
-    'Logística, Almacén y Seguridad Laboral',
+    'Logística, Almacén y Seguridad y Salud en el Trabajo (SST)',
     'logistics',
-    'Simulación práctica de picking FEFO, trazabilidad de inventario y protocolos de seguridad EPP bajo SLA.',
+    'Simulación práctica basada en tareas reales de practicantes: picking FEFO, control de inventario y protocolos SST/EPP bajo SLA.',
     true
   ),
   (
     'ADMIN_CORE',
-    'Administración, Reportes y Habilidades Digitales',
+    'Administración, Redacción Documental y Gestión de Datos',
     'administration',
-    'Gestión de reportes operativos, conciliación documental, herramientas digitales y resguardo de datos.',
+    'Redacción de documentos, gestión de reportes operativos, conciliación de datos, habilidades digitales y resguardo de confidencialidad.',
     true
   ),
   (
@@ -28,9 +28,9 @@ values
   ),
   (
     'HASOCIAJOB_SOFT',
-    'HaSociaJob — Habilidades Blandas y Liderazgo',
+    'Ha.Socia.Job — Habilidades Blandas, Liderazgo y Pensamiento Crítico',
     'hasociajob',
-    'Simulador situacional para fortalecer comunicación efectiva, liderazgo, trabajo en equipo, resolución de problemas y adaptabilidad.',
+    'Simulador situacional para fortalecer comunicación efectiva, liderazgo, trabajo colaborativo, pensamiento crítico y adaptabilidad.',
     true
   )
 on conflict (code) do nothing;

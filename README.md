@@ -4,12 +4,12 @@
 
 ![Status](https://img.shields.io/badge/Status-Architecture%20%26%20Technical%20Blueprint-0ea5e9?style=for-the-badge)
 ![Achievement](https://img.shields.io/badge/Award-Ganador%20Nacional%20Ideat%C3%B3n%20Empleo%20Juvenil-10b981?style=for-the-badge)
-![Modules](https://img.shields.io/badge/Modules-Admin%20%7C%20Log%C3%ADstica%20%7C%20Ventas%20%7C%20HaSociaJob-6366f1?style=for-the-badge)
+![Modules](https://img.shields.io/badge/Modules-Admin%20%7C%20Log%C3%ADstica%20%7C%20Ventas%20%7C%20Ha.Socia.Job-6366f1?style=for-the-badge)
 ![Backend](https://img.shields.io/badge/Backend-Next.js%2016%20App%20Router-000000?style=for-the-badge&logo=nextdotjs)
 ![Database](https://img.shields.io/badge/Database-Supabase%20%7C%20PostgreSQL%20%2B%20RLS-3ecf8e?style=for-the-badge&logo=supabase)
 ![Engine](https://img.shields.io/badge/Engine-Pure%20TypeScript%20Deterministic-3178c6?style=for-the-badge&logo=typescript)
 
-**Plataforma web B2B2C diseñada para enfrentar el desempleo juvenil en el Perú mediante simuladores virtuales 3D de prácticas preprofesionales (Administración, Logística, Ventas), entrenamiento de habilidades blandas con *HaSociaJob*, retroalimentación con IA, certificación laboral verificable y cartera de talento capacitado.**
+**Plataforma web B2B2C diseñada para resolver la falta de experiencia laboral juvenil en el Perú mediante un simulador virtual de prácticas preprofesionales basado en tareas reales de empresas (Administración, Logística, Ventas, redacción de documentos, gestión de datos y Seguridad y Salud en el Trabajo), entrenamiento de habilidades blandas con *Ha.Socia.Job*, retroalimentación con IA, certificación laboral verificable y cartera de talento en tiempo real.**
 
 [Arquitectura del Sistema](docs/ARCHITECTURE.md) • [Esquema PostgreSQL & RLS](docs/BACKEND_SCHEMA.md) • [Contratos API](docs/API_CONTRACT.md) • [Motor TS vs. IA](docs/ENGINE_AND_AI_SEPARATION.md) • [Flujos End-to-End](docs/USER_AND_DATA_FLOWS.md)
 
@@ -19,39 +19,44 @@
 
 > [!NOTE]
 > **Transparencia de Estado del Repositorio (`Technical Blueprint`)**
-> Este repositorio documenta la **arquitectura técnica, modelo de datos, políticas de seguridad (RLS), contratos API y diseño del motor determinista** de **PortalJob** (incluyendo el módulo **HaSociaJob**), propuesta reconocida como **Ganador Nacional en la Ideatón Por El Empleo Juvenil**.
+> Este repositorio documenta la **arquitectura backend, modelo relacional, políticas de seguridad (RLS), contratos API y motor determinista en TypeScript puro** de **PortalJob** (incluyendo el módulo **Ha.Socia.Job**), proyecto reconocido como **Ganador Nacional en la Ideatón Por El Empleo Juvenil**.
 >
-> Aunque no se programó la versión final productiva completa en código, los artefactos técnicos aquí publicados (migraciones SQL, políticas RLS, contratos REST, ADRs y motor de scoring en TypeScript puro) constituyen un **blueprint listo para implementación** respaldado por un caso de negocio, alcance geográfico y presupuesto estructurados.
+> Aunque no se programó la versión final productiva completa en código, los artefactos técnicos aquí publicados constituyen un **blueprint listo para implementación** respaldado por investigación de mercado (INEI / ManPowerGroup), marco normativo peruano (Ley de Empleo Juvenil del MTPE y Ley N.º 29733) y proyección financiera integral.
 
 ---
 
-## 1. Contexto del Problema y Planteamiento de PortalJob
+## 1. Contexto del Problema, Datos de Mercado y Propuesta de Valor
 
-### Rompiendo el Ciclo Vicioso en el Mercado Juvenil Peruano
-Miles de jóvenes en el Perú quedan excluidos del empleo formal por la misma barrera estructural: **sin experiencia no hay trabajo, y sin trabajo no hay experiencia**. Para el tejido empresarial, contratar perfiles sin experiencia comprobada eleva el costo de selección, inducción y rotación temprana.
+### La Trampa de la Falta de Experiencia Laboral en Perú
+En el Perú, miles de jóvenes —tanto estudiantes universitarios como jóvenes fuera de la educación formal— enfrentan la misma barrera estructural en puestos de entrada: **sin experiencia no hay trabajo, y sin trabajo no hay experiencia**.
 
-### Solución: Simulador Virtual de Prácticas Preprofesionales (B2B2C)
-**PortalJob** opera como un simulador virtual gamificado estructurado en módulos temáticos que replican funciones operativas reales en sectores clave (**Administración, Logística y Ventas**), complementado por el módulo de habilidades blandas **HaSociaJob**:
+Según datos oficiales del **INEI** citados en la investigación base de PortalJob (Lima Metropolitana):
+* **71,400 empleos perdidos** para jóvenes de **14 a 24 años** en comparación con el periodo pre-pandemia.
+* **130,000 jóvenes desempleados**, alcanzando una tasa de desempleo juvenil del **14.4%**.
+* **84.9%** de los jóvenes menores de 25 años que acceden al mercado laboral lo hacen en condiciones de **informalidad**, sin beneficios sociales ni derechos laborales.
 
-| Pilar de PortalJob | Qué hace funcionalmente | Respaldo en la Arquitectura Backend |
+### Planteamiento de PortalJob (Simulador Virtual de Prácticas Preprofesionales)
+PortalJob rompe este ciclo operando como un entorno virtual basado en **tareas y proyectos reales que practicantes pagados han ejecutado en empresas**, complementado por una red de ex-practicantes colaboradores y casos empresariales anonimizados:
+
+| Pilar de PortalJob | Qué resuelve funcionalmente | Respaldo en la Arquitectura Backend |
 | :--- | :--- | :--- |
-| **1. Simuladores Interactivos (Admin, Logística, Ventas)** | Tareas prácticas reales: gestión de reportes, trabajo en equipo, habilidades digitales y protocolos de seguridad laboral. | Checkpoints versionados (`state_snapshot`), bitácora *append-only* (`session_events`) e idempotencia ante micro-cortes. |
-| **2. HaSociaJob (Habilidades Blandas)** | Simulador dedicado a fortalecer comunicación efectiva, liderazgo, resolución de problemas y adaptabilidad. | Motor determinista situacional en TypeScript puro + evaluación objetiva por rúbrica antes de invocar al mentor IA. |
-| **3. Retroalimentación Personalizada con IA** | Analiza desempeño, identifica fortalezas/brechas y sugiere micro-acciones de mejora. | Capa LLM estrictamente desacoplada del puntaje (`LLM ≠ Motor Numérico`), con cuotas diarias por usuario. |
-| **4. Certificación Laboral Verificable** | Modelo de certificación co-avalada (propuesto con MTPE y empresas aliadas objetivo como BCP, ManPower y Telefónica). | Tabla `certificates` inmutable ligada a `evaluation_results`, código único de verificación y hash determinista. |
-| **5. Intermediación Laboral (Cartera de Talento)** | Conecta a jóvenes capacitados con empresas aliadas a partir de competencias demostradas. | Políticas RLS multi-tenant y tabla `talent_opt_ins` con consentimiento explícito y filtros por región/vertical. |
+| **1. Simuladores Técnicos por Sector** | Tareas reales en **Administración, Logística y Ventas**: redacción de documentos, gestión de datos, reportes, habilidades digitales y **Seguridad y Salud en el Trabajo (SST)**. | Checkpoints versionados (`state_snapshot`), bitácora *append-only* (`session_events`) e idempotencia ante micro-cortes. |
+| **2. Ha.Socia.Job (Habilidades Blandas)** | Simulador dedicado a comunicación efectiva, liderazgo, pensamiento crítico, adaptabilidad y trabajo colaborativo. | Evaluador situacional determinista en TypeScript puro + rúbrica objetiva antes de invocar al mentor IA. |
+| **3. Retroalimentación Inmediata con IA** | Analiza desempeño en tiempo real, identifica fortalezas/brechas y guía al joven en su mejora continua. | Capa LLM desacoplada del puntaje (`LLM ≠ Motor Numérico`), con caché y cuotas diarias por usuario. |
+| **4. Verificación y Certificación Laboral** | Modelo de acreditación propuesto con respaldo de empresas aliadas, la plataforma y el **MTPE** (alineado a la Ley de Empleo Juvenil). | Tabla inmutable `certificates` ligada a `evaluation_results`, con `verification_code` único y RPC de consulta segura. |
+| **5. Cartera de Talento en Tiempo Real** | Permite a empresas supervisar el progreso de candidatos capacitados y acelerar su intermediación laboral. | Políticas RLS multi-tenant, `talent_opt_ins` explícito (Ley N.º 29733) y filtros por vertical, puntaje y región. |
 
 ---
 
 ## 2. Mi Rol Técnico y Liderazgo como Arquitecto Backend
 
-En el diseño de **PortalJob**, lideré la arquitectura del servidor, los datos y la seguridad para garantizar escalabilidad nacional, protección de datos y confiabilidad comercial frente a empresas aliadas:
+En la evolución técnica de **PortalJob** desde la propuesta conceptual del Ideatón hacia una arquitectura cloud moderna y escalable, lideré el diseño de infraestructura, datos y seguridad:
 
-1. **Backend-for-Frontend (`Next.js 16 App Router`):** Diseño de Route Handlers versionados (`/api/v1/*`) con validación Zod, control de concurrencia optimista (`state_version`) e idempotencia en telemetría 3D.
-2. **Arquitectura de Datos y Migraciones SQL (`Supabase / PostgreSQL`):** Diseño integral de las tablas de perfiles multi-rol, tracks sectoriales, sesiones resumibles, auditoría de eventos, certificaciones verificables y cartera de talento B2B.
-3. **Ciberseguridad, Protección de Datos y RLS:** Aislamiento *deny-by-default* en PostgreSQL alineado a principios de protección de datos personales (Ley N.º 29733 — Perú), bloqueando manipulación de puntajes/XP desde el cliente y exigiendo *opt-in* explícito para visibilidad B2B.
-4. **Motor Determinista en TypeScript Puro (`packages/simulation-engine`):** Separación estricta entre el cálculo numérico determinista (KPIs operativos, SLA, seguridad laboral y competencias *HaSociaJob*) y la capa de interpretación pedagógica por IA.
-5. **APIs de Progreso, Certificación e Intermediación:** Endpoints diseñados para rastrear avance por competencia, emitir/verificar certificados y filtrar talento por vertical y región geográfica.
+1. **Evolución del Stack Backend (`Next.js 16 App Router` + `Supabase`):** Reemplazo de la arquitectura conceptual inicial (Java/Python/HTML en Heroku) por un BFF unificado en **Next.js 16 App Router** y **Supabase (PostgreSQL + Auth + RLS)**, reduciendo latencia y costos operativos ([ADR-005](docs/adr/005-evolution-from-ideaton-stack-to-nextjs-supabase.md)).
+2. **Arquitectura de Datos y Migraciones SQL:** Modelado completo de perfiles regionalizados, tracks sectoriales, sesiones con recuperación de estado, eventos idempotentes, certificaciones verificables y cartera de talento B2B.
+3. **Ciberseguridad y Cumplimiento Ley N.º 29733 (Perú):** Políticas **Row Level Security (RLS)** *deny-by-default*, consentimiento explícito y revocable (`talent_opt_ins`) para visibilidad empresarial y bloqueos *anti-tampering* contra alteración de puntajes o certificados.
+4. **Motor Determinista en TypeScript Puro (`packages/simulation-engine`):** Separación estricta entre el cálculo determinista de desempeño (KPIs, SLA, SST, gestión documental y *Ha.Socia.Job*) y la capa de interpretación con Inteligencia Artificial.
+5. **APIs de Progreso, Supervisión en Tiempo Real y Certificación:** Route Handlers `/api/v1/*` para seguimiento de avance, verificación pública de certificados y filtrado B2B de talento.
 
 ---
 
@@ -61,8 +66,8 @@ En el diseño de **PortalJob**, lideré la arquitectura del servidor, los datos 
 flowchart TB
     subgraph Client["Capa Cliente (Navegador — Web / Móvil)"]
         UI["Next.js 16 Client UI + Cartera / Dashboard"]
-        SIM_TECH["Simuladores 3D Sectoriales<br/>(Admin, Logística, Ventas)"]
-        SIM_SOFT["Simulador HaSociaJob<br/>(Habilidades Blandas)"]
+        SIM_TECH["Simuladores Sectoriales 3D<br/>(Admin, Logística, Ventas, SST)"]
+        SIM_SOFT["Simulador Ha.Socia.Job<br/>(Habilidades Blandas)"]
         SYNC["Checkpoint & Telemetry Sync"]
         UI --> SYNC
         SIM_TECH --> SYNC
@@ -79,7 +84,7 @@ flowchart TB
     end
 
     subgraph Core["Dominio Puro — packages/simulation-engine"]
-        ENG["Motor Determinista TypeScript<br/>(Admin, Logística, Ventas, HaSociaJob)"]
+        ENG["Motor Determinista TypeScript<br/>(Admin, Logística, Ventas, Ha.Socia.Job)"]
     end
 
     subgraph Data["Supabase Infrastructure"]
@@ -110,15 +115,15 @@ flowchart TB
 
 ## 4. Separación Estricta: Motor Determinista vs. IA Personalizada
 
-Para que una certificación laboral respaldada por empresas aliadas y entidades como el MTPE tenga validez real, **la IA nunca califica ni asigna XP**:
+Para respaldar certificaciones laborales con valor institucional (MTPE y empresas aliadas), **la IA nunca califica ni modifica puntajes**:
 
 ```text
-Eventos del Simulador (Admin / Logística / Ventas / HaSociaJob)
+Eventos del Simulador (Admin / Logística / Ventas / Ha.Socia.Job)
               │
               ▼
   [ Motor Determinista en TypeScript Puro ]   ◄── 0 dependencias React / Red / LLM
    • Valida tiempos mínimos anti-trampa y orden secuencial
-   • Evalúa KPIs por sector: reportes, FEFO/EPP, conversión, liderazgo/comunicación
+   • Evalúa KPIs por sector: reportes/datos, FEFO/SST, ética comercial, liderazgo
    • Calcula score (0-100), aprobación, XP y genera inputHash reproducible
               │
               ▼  (Persistencia atómica + emisión de certificado si aprueba)
@@ -150,11 +155,11 @@ erDiagram
     PARTNER_ORGS ||--o{ TALENT_OPT_INS : queries
 ```
 
-### Controles de Ciberseguridad y Protección de Datos
-* **Frontera Zero-Trust en PostgreSQL (`002_rls_policies.sql`):** Cada fila en `simulation_sessions`, `session_events`, `evaluation_results`, `certificates` y `talent_opt_ins` está protegida por RLS *deny-by-default*.
-* **Protección de Datos y Consentimiento B2B:** Ninguna empresa aliada puede consultar el perfil o desempeño de un joven en la **cartera de talento** si el usuario no otorgó consentimiento explícito (`talent_opt_ins.consent_status = 'granted'`), alineado al principio de autodeterminación informativa (Ley N.º 29733).
-* **Anti-Tampering de Puntajes y Certificados:** Las tablas `evaluation_results`, `candidate_skill_progress` y `certificates` bloquean escritura directa desde clientes (`authenticated`), permitiendo mutaciones únicamente mediante la RPC transaccional `commit_deterministic_evaluation` ejecutada en servidor (`service_role`).
-* **Verificación Pública Segura de Certificados:** Mediante la función `verify_certificate(code)` y el endpoint `/api/v1/certificates/verify/[code]`, cualquier empleador puede validar la autenticidad de un certificado sin acceder al listado privado de usuarios.
+### Ciberseguridad y Cumplimiento Ley N.º 29733 (Protección de Datos Personales — Perú)
+* **Frontera Zero-Trust en PostgreSQL (`002_rls_policies.sql`):** Acceso *deny-by-default* en todas las tablas.
+* **Consentimiento Explícito y Supervisión Segura (`talent_opt_ins`):** Las empresas aliadas únicamente pueden supervisar sesiones en curso, progreso y evaluaciones de jóvenes que otorgaron consentimiento explícito y tienen `is_open_to_work = true`.
+* **Anti-Tampering de Puntajes y Certificados:** Las tablas `evaluation_results`, `candidate_skill_progress` y `certificates` bloquean escritura directa desde clientes (`authenticated`); únicamente la RPC transaccional `commit_deterministic_evaluation` ejecutada en servidor (`service_role`) puede emitir notas, XP y credenciales.
+* **Verificación Puntual sin Exposición Masiva:** `verify_certificate(code)` permite a empleadores validar un código específico de certificado sin poder listar ni extraer la base completa de jóvenes.
 
 > Ver detalle completo en [docs/BACKEND_SCHEMA.md](docs/BACKEND_SCHEMA.md) y [ADR-004](docs/adr/004-verifiable-credentials-and-data-protection.md).
 
@@ -164,10 +169,10 @@ erDiagram
 
 | Vertical / Módulo | Código de Track | Competencias Evaluadas por el Motor TS |
 | :--- | :--- | :--- |
-| **Logística & Seguridad Laboral** | `LOGISTICS_CORE` | Picking FIFO/FEFO, verificación obligatoria de EPP, precisión de despacho y cumplimiento de SLA. |
-| **Administración & Habilidades Digitales** | `ADMIN_CORE` | Gestión de reportes operativos, detección de inconsistencias de datos/facturación y priorización documental. |
+| **Logística & Seguridad y Salud en el Trabajo (SST)** | `LOGISTICS_CORE` | Picking FIFO/FEFO, verificación obligatoria de EPP/SST, precisión de despacho y cumplimiento de SLA. |
+| **Administración, Documentos & Gestión de Datos** | `ADMIN_CORE` | Redacción/auditoría de reportes operativos, conciliación de datos, herramientas digitales y resguardo de PII. |
 | **Ventas & Atención Comercial** | `SALES_CORE` | Diagnóstico de necesidad del cliente, manejo de objeciones, ética comercial y tasa de cierre. |
-| **HaSociaJob (Habilidades Blandas)** | `HASOCIAJOB_SOFT` | Comunicación efectiva, liderazgo de equipo, resolución de conflictos, trabajo en equipo y adaptabilidad. |
+| **Ha.Socia.Job (Habilidades Blandas)** | `HASOCIAJOB_SOFT` | Comunicación efectiva, liderazgo, pensamiento crítico, trabajo colaborativo y adaptabilidad. |
 
 ---
 
@@ -183,40 +188,43 @@ erDiagram
 | `POST /api/v1/simulations/sessions/[id]/ai-feedback` | Genera retroalimentación personalizada y plan de mejora | Auth JWT + Rate Limit diario |
 | `GET /api/v1/progress/me` | Progreso consolidado, nivel, XP por competencia y certificados propios | Auth JWT + RLS |
 | `GET /api/v1/certificates/verify/[code]` | Validación de autenticidad de certificación laboral por empleadores | Código único verificable (sin exposición masiva) |
-| `GET /api/v1/partner/talent` | Cartera de talento capacitado filtrable por vertical, score y región (`Lima`, `Arequipa`, `Piura`) | Auth JWT + Membership B2B + Opt-in obligatorio |
+| `GET /api/v1/partner/talent` | Cartera de talento filtrable por vertical, score y región (`Lima`, `Piura`, `Lambayeque`, `Arequipa`) | Auth JWT + Membership B2B + Opt-in obligatorio |
 
 > Especificación completa de payloads y códigos de error en [docs/API_CONTRACT.md](docs/API_CONTRACT.md).
 
 ---
 
-## 8. Impacto, Alcance Geográfico y Proyección de Implementación
+## 8. Plan de Despliegue Regional, Alianzas y Proyección Financiera
 
-### Despliegue Progresivo (Hoja de Ruta de 18 Meses)
+### Despliegue Gradual en 3 Fases (con Indicadores ManPowerGroup 2024)
 ```text
-Meses 1–6:  Lima Metropolitana (Piloto B2C + primeras alianzas empresariales y validación de rúbricas)
-     │
-     ▼
-Meses 7–12: Expansión a Arequipa y Piura (Regionalización de cartera de talento en profiles.region)
-     │
-     ▼
-Meses 13–18: Cobertura Nacional (Estandarización de co-certificación y escalamiento multi-tenant)
+Fase 1 — Inicial:      Lima Metropolitana
+                       (Recopilación de métricas iniciales de simuladores y validación de rúbricas)
+         │
+         ▼
+Fase 2 — Regional:     Piura (43%) • Lambayeque (30%) • Arequipa (29%)
+                       (Expansión a regiones de mayor expectativa de demanda laboral — ManPowerGroup 2024)
+         │
+         ▼
+Fase 3 — Nacional:     Cobertura Nacional Completa (proyección 18 meses)
+                       (Optimización continua por feedback regional y alianzas multi-sector)
 ```
 
-### Retos Estratégicos y Mitigación Arquitectónica
-* **Colaboración Empresarial:** Retos patrocinados (`scenarios.partner_org_id`) para que empresas aliadas modelen tareas reales de sus áreas de Administración, Logística y Ventas sin exponer datos productivos internos.
-* **Viabilidad Financiera & Ecosistema Institucional:** Propuesta diseñada para articular apoyo institucional con entidades como **MTPE**, **OIT** y programas como **Impulsa Perú**, junto con alianzas corporativas objetivo (ej. **BCP, ManPower, Telefónica**).
-* **Escalabilidad & Ciberseguridad:** BFF *stateless* en Next.js 16, control de costos de IA por cuotas y separación de tablas calientes de telemetría frente a vistas resumidas de progreso.
+### Ecosistema de Alianzas y Viabilidad Estratégica Propuesta
+* **Sector Público y Organismos Internacionales:** Articulación propuesta con el **MTPE** (y programas como **Impulsa Perú**), la **Organización Internacional del Trabajo (OIT)** y redes de cooperación internacional como **Alliance 2015 / Ayuda en Acción**.
+* **Empresas Aliadas Objetivo (Contenido Real & Cartera de Talento):** **Fundación Romero, ManPowerGroup, BCP, Telefónica, Promart e Interbank** para proveer tareas reales anonimizadas de practicantes y acceder a talento pre-capacitado.
+* **Red de Ex-Practicantes Colaboradores:** Aprovechamiento de jóvenes ocupados que aportan retroalimentación sobre tareas reales para mantener actualizados los módulos.
 
 ### Proyección Financiera de Implementación (Propuesta Integral)
 
 | Partida Presupuestal | Rango Estimado (USD) | Alcance Principal |
 | :--- | :---: | :--- |
-| **Desarrollo tecnológico** | USD 35,000 – 41,000 | Construcción MVP completo (Simuladores 3D, *HaSociaJob*, BFF Next.js, motor TS e IA). |
-| **Infraestructura y soporte** | USD 13,000 – 16,500 | Supabase/PostgreSQL, hosting serverless, almacenamiento, monitoreo y soporte operativo. |
-| **Recursos humanos** | USD 78,000 – 93,000 | Equipo multidisciplinario (Ingeniería, Diseño 3D/UX, Pedagogía Laboral, Gestión). |
-| **Promoción y alianzas** | USD 14,000 – 18,000 | Adquisición de talento joven y articulación con empresas aliadas y programas públicos. |
-| **Mantenimiento y expansión** | USD 80,000 | Operación continua, soporte evolutivo y despliegue regional (Lima → Arequipa / Piura → Nacional en 18 meses). |
-| **Total Estimado** | **USD 220,000 – 250,500** | **Cobertura integral de desarrollo, despliegue y expansión a 18 meses.** |
+| **Desarrollo tecnológico** | USD 35,000 – 41,000 | Construcción MVP completo (Simuladores, *Ha.Socia.Job*, BFF Next.js, motor TS e IA). |
+| **Infraestructura y soporte** | USD 13,000 – 16,500 | Supabase/PostgreSQL, hosting serverless, cifrado, monitoreo y soporte operativo. |
+| **Recursos humanos** | USD 78,000 – 93,000 | Equipo multidisciplinario (Ingeniería, Diseño UX/3D, Pedagogía Laboral, Gestión). |
+| **Promoción y alianzas** | USD 14,000 – 18,000 | Campañas en universidades, LinkedIn, redes sociales, ONGs y articulación empresarial. |
+| **Mantenimiento y expansión** | USD 80,000 | Operación continua y escalamiento regional (Lima → Piura / Lambayeque / Arequipa → Nacional en 18 meses). |
+| **Total Estimado** | **USD 220,000 – 250,500** | **Cobertura integral de desarrollo, seguridad, alianzas y expansión nacional.** |
 
 ---
 
@@ -224,32 +232,33 @@ Meses 13–18: Cobertura Nacional (Estandarización de co-certificación y escal
 
 ```text
 portal-job/
-├── README.md                                        # Documento maestro: contexto, rol backend, arquitectura y presupuesto
-├── LICENSE                                          # Licencia MIT
-├── .env.example                                     # Plantilla segura de variables de entorno
+├── README.md                                                    # Documento maestro: contexto INEI/MTPE, rol backend y blueprint
+├── LICENSE                                                      # Licencia MIT
+├── .env.example                                                 # Plantilla segura de variables de entorno
 ├── docs/
-│   ├── ARCHITECTURE.md                              # Diagramas C4, regionalización y escalabilidad
-│   ├── BACKEND_SCHEMA.md                            # ERD, certificados, RLS multi-tenant e índices
-│   ├── API_CONTRACT.md                              # Contratos REST v1, verificación de certificados y cartera B2B
-│   ├── ENGINE_AND_AI_SEPARATION.md                  # Motor TS (Admin, Logística, Ventas, HaSociaJob) vs. IA
-│   ├── USER_AND_DATA_FLOWS.md                       # Secuencias end-to-end y máquina de estados
+│   ├── ARCHITECTURE.md                                          # Diagramas C4, regionalización (Piura/Lambayeque/Arequipa) y seguridad
+│   ├── BACKEND_SCHEMA.md                                        # ERD, certificados, RLS multi-tenant e índices
+│   ├── API_CONTRACT.md                                          # Contratos REST v1, verificación de certificados y cartera B2B
+│   ├── ENGINE_AND_AI_SEPARATION.md                              # Motor TS (Admin, Logística, Ventas, Ha.Socia.Job) vs. IA
+│   ├── USER_AND_DATA_FLOWS.md                                   # Secuencias end-to-end y máquina de estados
 │   └── adr/
-│       ├── 001-deterministic-ts-engine-vs-ai.md     # Separación estricta scoring determinista vs. LLM
-│       ├── 002-supabase-rls-multitenancy.md         # RLS deny-by-default para B2C y empresas aliadas
-│       ├── 003-nextjs16-bff-and-state-persistence.md # Checkpoints versionados e idempotencia
-│       └── 004-verifiable-credentials-and-data-protection.md # Certificación verificable y protección de datos
+│       ├── 001-deterministic-ts-engine-vs-ai.md                 # Separación estricta scoring determinista vs. LLM
+│       ├── 002-supabase-rls-multitenancy.md                     # RLS deny-by-default para B2C y empresas aliadas
+│       ├── 003-nextjs16-bff-and-state-persistence.md            # Checkpoints versionados e idempotencia
+│       ├── 004-verifiable-credentials-and-data-protection.md    # Certificación verificable y Ley N.º 29733
+│       └── 005-evolution-from-ideaton-stack-to-nextjs-supabase.md # Evolución desde stack inicial Ideatón a Next.js 16 + Supabase
 ├── supabase/
 │   └── migrations/
-│       ├── 001_init_schema.sql                      # DDL: tracks, escenarios, sesiones, evaluaciones y certificados
-│       ├── 002_rls_policies.sql                     # Políticas RLS multi-tenant y verificación segura
-│       ├── 003_triggers_and_functions.sql           # Triggers anti-tamper, RPC transaccional y verify_certificate
-│       └── 004_seed_catalog.sql                     # Seed real: Logística, Administración, Ventas y HaSociaJob
+│       ├── 001_init_schema.sql                                  # DDL: tracks, escenarios, sesiones, evaluaciones y certificados
+│       ├── 002_rls_policies.sql                                 # Políticas RLS multi-tenant y supervisión segura
+│       ├── 003_triggers_and_functions.sql                       # Triggers anti-tamper, RPC transaccional y verify_certificate
+│       └── 004_seed_catalog.sql                                 # Seed real: Logística/SST, Administración/Datos, Ventas y Ha.Socia.Job
 └── packages/
     └── simulation-engine/
-        ├── tsconfig.json                            # Configuración TypeScript estricta (0 deps externas)
-        ├── types.ts                                 # Contratos de dominio para las 4 verticales
-        ├── scoring-contract.ts                      # Motor determinista puro y máquina de estados
-        └── scoring-contract.test.ts                 # Suite ejecutable (node --test)
+        ├── tsconfig.json                                        # Configuración TypeScript estricta (0 deps externas)
+        ├── types.ts                                             # Contratos de dominio para las 4 verticales
+        ├── scoring-contract.ts                                  # Motor determinista puro y máquina de estados
+        └── scoring-contract.test.ts                             # Suite ejecutable (node --test)
 ```
 
 ### Verificación Local del Motor Determinista
